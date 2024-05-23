@@ -1,7 +1,3 @@
-Sure, I'll update the README file based on your instructions. Here's the revised version:
-
----
-
 # ESP8266 SCD41 and OLED Display Project
 
 This project demonstrates the integration of an ESP8266 microcontroller with a CIWEI SCD41 CO2 sensor and a 1.3-inch OLED I2C display. The system reads CO2 concentration, temperature, and humidity from the SCD41 sensor and displays the data on the OLED screen.
