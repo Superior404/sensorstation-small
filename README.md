@@ -27,8 +27,8 @@ Note: The SCD41 sensor and the OLED display share the same I2C pins.
 
 1. **Clone this repository**:
     ```bash
-    git clone https://github.com/yourusername/esp8266-scd41-oled.git
-    cd esp8266-scd41-oled
+    git clone https://github.com/Superior404/sensorstation-small/
+    cd sensorstation-small
     ```
 
 2. **Install necessary libraries**:
@@ -51,8 +51,8 @@ Note: The SCD41 sensor and the OLED display share the same I2C pins.
 
 ## Images
 
-1. [Complete Code Image 1](images/image1.heic)
-2. [Complete Code Image 2](images/image2.heic)
+1. [Complete Code Image 1](images/image1.png)
+2. [Complete Code Image 2](images/image2.png)
 
 ## License
 
