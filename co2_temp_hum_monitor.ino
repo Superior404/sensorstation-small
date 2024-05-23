@@ -36,22 +36,18 @@
 #include <SPI.h>
 #include <Adafruit_GFX.h>
 
-
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET -1
+#define SCREEN_ADDRESS 0x3C
 
 SensirionI2CScd4x scd4x;
-
-#define SCREEN_WIDTH 128 // OLED display width, in pixels
-#define SCREEN_HEIGHT 64 // OLED display height, in pixels
-#define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
-#define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
-
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-
 void printUint16Hex(uint16_t value) {
-    Serial.print(value < 4096 ? "0" : "");
-    Serial.print(value < 256 ? "0" : "");
-    Serial.print(value < 16 ? "0" : "");
+    if (value < 4096) Serial.print("0");
+    if (value < 256) Serial.print("0");
+    if (value < 16) Serial.print("0");
     Serial.print(value, HEX);
 }
 
@@ -63,121 +59,96 @@ void printSerialNumber(uint16_t serial0, uint16_t serial1, uint16_t serial2) {
     Serial.println();
 }
 
+void checkError(uint16_t error, const char* message) {
+    if (error) {
+        char errorMessage[256];
+        Serial.print("Error trying to execute ");
+        Serial.print(message);
+        Serial.print(": ");
+        errorToString(error, errorMessage, sizeof(errorMessage));
+        Serial.println(errorMessage);
+    }
+}
+
+void displayData(uint16_t co2, float temperature, float humidity) {
+    display.clearDisplay();
+    display.setTextColor(WHITE);
+    display.setTextSize(2);
+    display.setCursor(0, 0);
+    display.print("Room-Moni:");
+
+    display.setCursor(0, 32);
+    display.setTextSize(1);
+    display.print("CO2:   ");
+    display.println(co2);
+    display.print("Temp:  ");
+    display.println(temperature);
+    display.print("Humidity: ");
+    display.println(humidity);
+    display.display();
+}
+
+void displayVentilationWarning(uint16_t co2) {
+    display.clearDisplay();
+    display.setCursor(0,0);
+    display.setTextSize(2);
+    display.print("Ventilate!");
+
+    display.setCursor(0,32);
+    display.print("CO2: ");
+    display.println(co2);
+    display.display();
+}
+
 void setup() {
-  Serial.begin(115200);
+    Serial.begin(115200);
 
+    if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+        Serial.println(F("SSD1306 allocation failed"));
+        for (;;);
+    }
 
-  if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
-    Serial.println(F("SSD1306 allocation failed"));
-    for(;;); // Don't proceed, loop forever
-  }
+    display.display();
+    delay(2000);
+    display.clearDisplay();
 
-  // Show initial display buffer contents on the screen --
-  // the library initializes this with an Adafruit splash screen.
-  display.display();
-  delay(2000); // Pause for 2 seconds
+    while (!Serial) {
+        delay(100);
+    }
 
-  // Clear the buffer
-  display.clearDisplay();
-  while (!Serial) {
-      delay(100);
-  }
+    Wire.begin();
+    scd4x.begin(Wire);
 
-  Wire.begin();
+    checkError(scd4x.stopPeriodicMeasurement(), "stopPeriodicMeasurement");
 
-  uint16_t error;
-  char errorMessage[256];
+    uint16_t serial0, serial1, serial2;
+    uint16_t error = scd4x.getSerialNumber(serial0, serial1, serial2);
+    checkError(error, "getSerialNumber");
+    if (!error) {
+        printSerialNumber(serial0, serial1, serial2);
+    }
 
-  scd4x.begin(Wire);
+    checkError(scd4x.startPeriodicMeasurement(), "startPeriodicMeasurement");
 
-  // stop potentially previously started measurement
-  error = scd4x.stopPeriodicMeasurement();
-  if (error) {
-      Serial.print("Error trying to execute stopPeriodicMeasurement(): ");
-      errorToString(error, errorMessage, 256);
-      Serial.println(errorMessage);
-  }
-
-  uint16_t serial0;
-  uint16_t serial1;
-  uint16_t serial2;
-  error = scd4x.getSerialNumber(serial0, serial1, serial2);
-  if (error) {
-      Serial.print("Error trying to execute getSerialNumber(): ");
-      errorToString(error, errorMessage, 256);
-      Serial.println(errorMessage);
-  } else {
-      printSerialNumber(serial0, serial1, serial2);
-  }
-
-  // Start Measurement
-  error = scd4x.startPeriodicMeasurement();
-  if (error) {
-      Serial.print("Error trying to execute startPeriodicMeasurement(): ");
-      errorToString(error, errorMessage, 256);
-      Serial.println(errorMessage);
-  }
-
-  Serial.println("Waiting for first measurement... (5 sec)");
+    Serial.println("Waiting for first measurement... (5 sec)");
 }
 
 void loop() {
-  uint16_t error;
-  char errorMessage[256];
+    uint16_t error;
+    uint16_t co2;
+    float temperature, humidity;
 
-  display.clearDisplay(); // Clear display buffer
-  delay(5000);
-  // Read Measurement
-  uint16_t co2;
-  float temperature;
-  float humidity;
-  error = scd4x.readMeasurement(co2, temperature, humidity);
-  if (error) {
-      Serial.print("Error trying to execute readMeasurement(): ");
-      errorToString(error, errorMessage, 256);
-      Serial.println(errorMessage);
-  } else if (co2 == 0) {
-      Serial.println("Invalid sample detected, skipping.");
-  } else {
-      display.clearDisplay();
-
-      display.setTextColor(WHITE);
-      display.setTextSize(2);
-      display.setCursor(0,0);
-      display.print("Room-Moni:");
-
-      display.setCursor(0,32);
-      display.setTextSize(1);
-      display.print("CO2:   ");
-      display.println(co2);
-      display.print("Temp:  ");
-      display.println(temperature);
-      display.print("Hum:   ");
-      display.println(humidity);
-      display.display();
-
-      if (co2 > 999) {
-        display.clearDisplay();
-        display.setCursor(0,0);
-        display.setTextSize(2);
-        display.print("Lueften!");
-
-        display.setCursor(0,32);
-        display.print("CO2: ");
-        display.println(co2);
-        display.display();
-        delay(2000);
-      }
-      /*
-      Serial.print("Co2:");
-      Serial.print(co2);
-      Serial.print("\t");
-      Serial.print("Temperature:");
-      Serial.print(temperature);
-      Serial.print("\t");
-      Serial.print("Humidity:");
-      Serial.println(humidity);
-      */
-  }
-
+    delay(5000);
+    error = scd4x.readMeasurement(co2, temperature, humidity);
+    if (error) {
+        checkError(error, "readMeasurement");
+    } else if (co2 == 0) {
+        Serial.println("Invalid sample detected, skipping.");
+    } else {
+        displayData(co2, temperature, humidity);
+        if (co2 > 1000) {
+            delay(5000); // Show the data for 5 seconds
+            displayVentilationWarning(co2);
+        }
+    }
 }
