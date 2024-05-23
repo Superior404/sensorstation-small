@@ -50,9 +50,9 @@ Note: The SCD41 sensor and the OLED display share the same I2C pins.
 ![Image1](images/image1.png)
 ![Image2](images/image2.png)
 
-## License
+## Disclaimer
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is provided as-is, without any warranty or guarantee of any kind. The creator of this project is not responsible for any damage that may occur to hardware or property as a result of using or misusing this project.
 
 ## Acknowledgments
 
