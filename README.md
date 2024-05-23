@@ -51,8 +51,8 @@ Note: The SCD41 sensor and the OLED display share the same I2C pins.
 
 ## Images
 
-1. [Image 1](images/image1.png)
-2. [Image 2](images/image2.png)
+1. ![Alt text](images/image1.png)
+2. ![Alt text](images/image2.png)
 
 ## License
 
